@@ -1,0 +1,27 @@
+name: Experiment CI - cmake build and ctest
+
+on:
+  push:
+    branches:
+      - edidada/master
+  workflow_dispatch:
+
+jobs:
+  build-test:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+      - name: Install dependencies
+        run: sudo apt-get update && sudo apt-get install -y cmake g++ libboost-all-dev libgsl-dev libeigen3-dev libhdf5-dev libfftw3-dev libexpat1-dev libsqlite3-dev libxml2-dev pkg-config
+      - name: CMake
+        run: cmake -B builddir -S . -DCMAKE_BUILD_TYPE=Release
+      - name: Build
+        run: cmake --build builddir -- -j $(nproc)
+      # Same thread-limits as the upstream CI test step.
+      - name: Tests
+        env:
+          OMP_NUM_THREADS: 1
+          OMP_WAIT_POLICY: passive
+        run: cd builddir && ctest --output-on-failure -j1
